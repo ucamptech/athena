@@ -7,6 +7,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.setGlobalPrefix("api");
   app.use('/images', express.static(join(__dirname,'..','static/images')));
+  app.use('/audio', express.static(join(__dirname, '..', 'static/audio')));
   await app.listen(process.env.PORT ?? 3000);
 }
 bootstrap();

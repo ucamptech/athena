@@ -12,6 +12,9 @@ export class QuestionSet {
   @Column({ nullable: true })
   question: string;
 
+  @Column({ nullable: false})
+  questionAudio: string;
+  
   @OneToMany(() => Choices, (choices) => choices.options, {
     cascade: true,
   })
