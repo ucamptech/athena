@@ -1,7 +1,8 @@
 import { Module } from "@nestjs/common";
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ExercisesModule } from "./modules/exercises/excercise.module";
-import { ExerciseList } from './modules/exercises/entities/exercise_list.entity';
+import { SessionModule } from "./modules/session/session.module";
+import { Session } from './modules/session/entities/session.entity';
 import { Exercise } from './modules/exercises/entities/exercise.entity';
 
 
@@ -9,11 +10,12 @@ import { Exercise } from './modules/exercises/entities/exercise.entity';
   imports: [
     TypeOrmModule.forRoot({
       type: 'sqlite',
-      database: 'database/exercises.db',
-      entities: [ExerciseList, Exercise],
+      database: 'src/database/exercises.db',
+      entities: [Session, Exercise],
       synchronize: true,
     }),
     ExercisesModule,
+    SessionModule,
   ],
 })
 export class AppModule {}

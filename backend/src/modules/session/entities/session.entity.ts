@@ -1,8 +1,8 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
-import { Exercise } from './exercise.entity'
+import { Exercise } from '../../exercises/entities/exercise.entity'
 
 @Entity()
-export class ExerciseList {
+export class Session {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -15,8 +15,8 @@ export class ExerciseList {
   @Column({ nullable: true })
   accumulatedSessionScore: number;
 
-  @OneToMany(() => Exercise, (exercise) => exercise.exerciseList, {
-    eager: true,
+  @OneToMany(() => Exercise, (exercise) => exercise.exerciseSession, {
+    cascade: true,
   })
-  exercises: Exercise[];
+  exerciseList: Exercise[];
 }

@@ -1,18 +1,22 @@
-import { Body, Controller, Post, Get} from '@nestjs/common';
-import { ExerciseList as ExerciseListDto  } from '../exercises/dto/exercise.dto';
+import { Body, Controller, Post, Get, Param} from '@nestjs/common';
 import { ExerciseService } from './exercise.service';
-
+import { Exercise as ExerciseDto } from './dto/exercise.dto';
 @Controller("exercises")
 export class ExerciseController {
   constructor(private readonly exercisesService: ExerciseService) {}
 
   @Post()
-  async createExercises(@Body() exerciseListDto: ExerciseListDto) {
-    return this.exercisesService.createExercises(exerciseListDto);
+  async createExercises(@Body() exerciseDto: ExerciseDto) {
+    return this.exercisesService.createExercises(exerciseDto);
   }
 
   @Get()
-  getExercise() {
-    return this.exercisesService.getExercises();
-  }
+  async getAllExercises() {
+        return this.exercisesService.getAllExercises();
+  } 
+
+  @Get(':exerciseID')
+   async getExercise(@Param('exerciseID') exerciseID: string){
+         return this.exercisesService.getExercises(exerciseID);
+     }
 }

@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
-import { ExerciseList } from './exercise_list.entity'
+import { Session } from '../../session/entities/session.entity'
 
 @Entity()
 export class Exercise {
@@ -21,6 +21,8 @@ export class Exercise {
   @Column()
   timeUserIsActive: string;
 
-  @ManyToOne(() => ExerciseList, (exerciseList) => exerciseList.exercises, { nullable: true })
-  exerciseList: ExerciseList;
+  @ManyToOne(() => Session, (session) => session.exerciseList, { 
+    nullable: true, 
+  })
+  exerciseSession: Session;
 }
