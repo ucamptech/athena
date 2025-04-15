@@ -1,5 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, ManyToOne, JoinTable } from 'typeorm';
 import { Session } from '../../session/entities/session.entity'
+import { QuestionSet } from 'src/modules/question-set/entities/question-set.entity';
 
 @Entity()
 export class Exercise {
@@ -9,8 +10,11 @@ export class Exercise {
   @Column({ nullable: true })
   exerciseID: string;
   
-  @Column({ nullable: true })
-  assets: string;
+  @ManyToMany(() => QuestionSet,(questionSet) => questionSet.exercise, {
+     nullable: false,   
+  })
+  @JoinTable({ name: 'questionSet'})
+  questionSet: QuestionSet[];
 
   @Column({ nullable: true })
   result: 'correct' | 'incorrect';

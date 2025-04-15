@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Choices as ChoicesEntity } from './entities/choices.entity';
@@ -12,7 +12,9 @@ export class ChoicesService {
   ) {}
 
   async createChoices(data: ChoicesDto) {
-
+    if (!data) {
+        throw new BadRequestException('Choices data is required');
+    }
     const choices = this.choicesRepository.create({
       choiceID: data.choiceID,
       image: data.image,
@@ -34,4 +36,37 @@ export class ChoicesService {
       where: { choiceID }, 
   });
   }
+
+  async patchChoice(choiceID: string, data: Partial<ChoicesDto>){
+
+    const choice = await this.choicesRepository.findOne({
+      where: {choiceID},
+      relations: ['exerciseSession', 'questionSet'],
+    });
+
+    if(!choice){
+      throw new NotFoundException(`Choice with ID ${choiceID} not found`);
+    }
+
+    Object.assign(choice,data);
+    
+    await this.choicesRepository.save(choice);
+
+    return { message: `Choice ${choiceID} updated successfully`, data: choice };
+  }
+
+  async deleteChoice(choiceID: string) {
+    const choice = await this.choicesRepository.findOne({
+      where: { choiceID },
+      relations: ['exerciseSession', 'questionSet'],
+    });
+  
+    if (!choice) {
+      throw new NotFoundException(`Choice with ID ${choiceID} not found`);
+    }
+  
+    await this.choicesRepository.remove(choice);
+    return { message: `Choice ${choiceID} deleted successfully` };
+  }
+  
 }

@@ -1,5 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, JoinColumn, OneToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, JoinTable, ManyToMany } from 'typeorm';
 import { Choices } from '../../choices/entities/choices.entity'
+import { Exercise } from '../../exercises/entities/exercise.entity';
 
 @Entity()
 export class QuestionSet {
@@ -12,19 +13,26 @@ export class QuestionSet {
   @Column({ nullable: true })
   question: string;
 
+  @Column({ nullable: true })
+  questionImage: string;
+
   @Column({ nullable: false})
   questionAudio: string;
   
-  @OneToMany(() => Choices, (choices) => choices.options, {
+  @ManyToMany(() => Choices, (choices) => choices.questionSetOption, {
     cascade: true,
   })
-  @JoinColumn({ name: 'options'})
+  @JoinTable({ name: 'options'})
   options: Choices[];
 
-  @OneToMany(() => Choices, (choices) => choices.correctAnswer, {
+  @ManyToMany(() => Choices, (choices) => choices.questionSetAnswer, {
     cascade: true,
   })
-  @JoinColumn({ name: 'correctAnswer'})
+  @JoinTable({ name: 'correctAnswer'})
   correctAnswer: Choices[];
 
+  @ManyToMany(() => Exercise, (exercise) => exercise.questionSet,{
+    cascade: true,
+  })
+  exercise: Exercise[];
 }

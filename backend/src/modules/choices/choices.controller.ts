@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Get, Param} from '@nestjs/common';
+import { Body, Controller, Post, Get, Param, Delete, Patch} from '@nestjs/common';
 import { Choices as ChoicesDto } from './dto/choices.dto';
 import { ChoicesService } from './choices.service';
 
@@ -20,4 +20,15 @@ export class ChoicesController {
    async getChoices(@Param('choicesID') choicesID: string){
          return this.choicesService.getChoices(choicesID);
      }
+
+  @Patch(':choicesID')
+  async patchChoice(@Param('choicesID') choicesID: string, @Body() choicesDto: ChoicesDto){
+        return this.choicesService.patchChoice(choicesID, choicesDto);
+    }
+
+  @Delete(':choicesID')
+   async deleteChoice(@Param('choicesID') choicesID: string){
+         return this.choicesService.deleteChoice(choicesID);
+     }
+
 }

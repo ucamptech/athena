@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToMany } from 'typeorm';
 import { QuestionSet } from '../../question-set/entities/question-set.entity';
 
 @Entity()
@@ -18,10 +18,10 @@ name: string;
 @Column()
 audio: string;
 
-@ManyToOne(() => QuestionSet, (questionSet) => questionSet.options)
-options: QuestionSet;
+@ManyToMany(() => QuestionSet, (questionSet) => questionSet.options)
+questionSetOption: QuestionSet;
 
-@ManyToOne(() => QuestionSet, (questionSet) => questionSet.options)
-correctAnswer: QuestionSet;
+@ManyToMany(() => QuestionSet, (questionSet) => questionSet.correctAnswer)
+questionSetAnswer: QuestionSet;
 
 }
