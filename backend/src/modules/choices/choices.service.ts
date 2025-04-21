@@ -28,13 +28,25 @@ export class ChoicesService {
   }
 
   async getAllChoices(){
-    return this.choicesRepository.find();
+    const choices = await this.choicesRepository.find();
+
+    if(!choices || choices.length === 0){
+      throw new NotFoundException('No choices found');
+    }
+
+    return choices;
   }
 
   async getChoices(choiceID : string) {
-    return this.choicesRepository.findOne({ 
+    const choice = await this.choicesRepository.findOne({ 
       where: { choiceID }, 
-  });
+    });
+
+    if(!choice){
+      throw new NotFoundException(`Choice with ID ${choiceID} not found`);
+    }
+
+    return choice;
   }
 
   async patchChoice(choiceID: string, data: Partial<ChoicesDto>){

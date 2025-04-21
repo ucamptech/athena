@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, ManyToOne, JoinTable } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
 import { Session } from '../../session/entities/session.entity'
 import { QuestionSet } from 'src/modules/question-set/entities/question-set.entity';
 
@@ -10,11 +10,10 @@ export class Exercise {
   @Column({ nullable: true })
   exerciseID: string;
   
-  @ManyToMany(() => QuestionSet,(questionSet) => questionSet.exercise, {
-     nullable: false,   
+  @ManyToOne(() => QuestionSet,(questionSet) => questionSet.exerciseLink, {
+    cascade: true,  
   })
-  @JoinTable({ name: 'questionSet'})
-  questionSet: QuestionSet[];
+  questionSet: QuestionSet;
 
   @Column({ nullable: true })
   result: 'correct' | 'incorrect';
@@ -25,8 +24,6 @@ export class Exercise {
   @Column()
   timeUserIsActive: string;
 
-  @ManyToOne(() => Session, (session) => session.exerciseList, { 
-    nullable: true, 
-  })
+  @ManyToOne(() => Session, (session) => session.exerciseList)
   exerciseSession: Session;
 }

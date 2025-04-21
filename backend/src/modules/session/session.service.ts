@@ -27,15 +27,19 @@ export class SessionService{
             accumulatedSessionScore: data.accumulatedSessionScore,
         });
 
-        const exercise = await this.exerciseRepository.find({
-            where: { exerciseID: In(data.exerciseList) },
-        });
+        if(data.exerciseList || data.exerciseList.length > 0){
 
-        if(!exercise || exercise.length === 0){
-            throw new NotFoundException(`Exercises not found`);
+          const exercise = await this.exerciseRepository.find({
+            where: { exerciseID: In(data.exerciseList) },
+          });
+
+          if(!exercise || exercise.length === 0){
+              throw new NotFoundException(`Exercises not found`);
           }
 
-        session.exerciseList = exercise;
+          session.exerciseList = exercise;
+        }
+
         await this.sessionRepository.save(session);
         
         return { message: `Session with user ${data.userID} created successfully`, data: session };

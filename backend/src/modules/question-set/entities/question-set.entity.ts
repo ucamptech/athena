@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, JoinTable, ManyToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, JoinTable, ManyToMany, OneToMany } from 'typeorm';
 import { Choices } from '../../choices/entities/choices.entity'
 import { Exercise } from '../../exercises/entities/exercise.entity';
 
@@ -31,8 +31,6 @@ export class QuestionSet {
   @JoinTable({ name: 'correctAnswer'})
   correctAnswer: Choices[];
 
-  @ManyToMany(() => Exercise, (exercise) => exercise.questionSet,{
-    cascade: true,
-  })
-  exercise: Exercise[];
+  @OneToMany(() => Exercise, (exercise) => exercise.questionSet)
+  exerciseLink: Exercise[];
 }

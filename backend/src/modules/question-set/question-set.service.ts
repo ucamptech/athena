@@ -25,16 +25,26 @@ export class QuestionSetService {
       questionAudio: data.questionAudio,
   });
 
-    const options = await this.choicesRepository.find({
-      where: { choiceID: In(data.options) },
-    });
+    if(data.options || data.options.length > 0){
 
-    const correctAnswer = await this.choicesRepository.find({
-      where: { choiceID: In(data.correctAnswer) },
-  })
+      const options = await this.choicesRepository.find({
+        where: { choiceID: In(data.options) },
+      });
+  
+      questionSet.options = options;
 
-    questionSet.options = options;
-    questionSet.correctAnswer = correctAnswer;
+    }
+
+
+    if(data.correctAnswer || data.correctAnswer.length > 0){
+
+      const correctAnswer = await this.choicesRepository.find({
+        where: { choiceID: In(data.correctAnswer) },
+      })
+
+      questionSet.correctAnswer = correctAnswer;
+
+    }
 
     await this.questionSetRepository.save(questionSet);
 
@@ -42,16 +52,28 @@ export class QuestionSetService {
   }
 
   async getAllQuestionSet(){
-    return this.questionSetRepository.find({
-      relations: ['options','correctAnswer'],
-    });
+      const questionSet = await this.questionSetRepository.find({
+         relations: ['options','correctAnswer'],
+      });
+      
+      if(!questionSet || questionSet.length === 0){
+        throw new NotFoundException(`No Question Set Data found`);
+      }
+
+      return questionSet;
   }
 
   async getQuestionSet(questionID : string) {
-    return this.questionSetRepository.findOne({ 
+    const questionSet = await this.questionSetRepository.findOne({ 
       where: { questionID }, 
       relations: ['options','correctAnswer'],
-  });
+    });
+
+    if(!questionSet){
+      throw new NotFoundException(`Question Set with ID ${questionID} not found`);
+    }
+
+    return questionSet;
   }
 
   async patchQuestionSet(questionID: string, data: Partial<QuestionSetDto>){
@@ -89,7 +111,7 @@ export class QuestionSetService {
 
     await this.questionSetRepository.save(questionSet);
     
-    return { message: `Exercise ${questionID} updated successfully`, data: questionSet };
+    return { message: `Question Set ${questionID} updated successfully`, data: questionSet };
   }
 
   async deleteQuestionSet(questionID: string) {

@@ -25,16 +25,20 @@ export class ExerciseService {
       timeUserIsActive: data.timeUserIsActive,
   });
   
-  
-    const questionSet = await this.questionSetRepository.find({
-      where: { questionID: In(data.questionSet), },
-    });
+    if(data.questionSet){
 
-    if(!questionSet || questionSet.length === 0){
-      throw new NotFoundException(`Question Sets not found`);
+      const questionSet = await this.questionSetRepository.findOne({
+         where: { questionID: In(data.questionSet) },
+      });
+
+      if(!questionSet){
+        throw new NotFoundException(`No Question Set found`);
+      }
+
+     exercise.questionSet = questionSet;
+
     }
 
-    exercise.questionSet = questionSet;
 
     await this.exerciseRepository.save(exercise);
 
@@ -42,16 +46,28 @@ export class ExerciseService {
   }
 
   async getAllExercises(){
-    return this.exerciseRepository.find({
-      relations: ['exerciseSession', 'questionSet', 'questionSet.options','questionSet.correctAnswer'],
+    const exercise = await this.exerciseRepository.find({
+      relations: ['exerciseSession', 'questionSet', 'questionSet.options','questionSet.correctAnswer']
     });
+
+    if(!exercise || exercise.length === 0){
+      throw new NotFoundException(`No Exercises data found`);
+    }
+
+    return exercise;
   }
 
   async getExercises(exerciseID : string) {
-    return this.exerciseRepository.findOne({ 
+    const exercise = await this.exerciseRepository.findOne({ 
       where: { exerciseID }, 
       relations: ['exerciseSession', 'questionSet', 'questionSet.options','questionSet.correctAnswer'],
-  });
+    });
+
+    if(!exercise){
+      throw new NotFoundException(`Exercise with ID ${exerciseID} not found`);
+    }
+
+    return exercise;
   }
   
   async deleteExercise(exerciseID: string) {
@@ -80,6 +96,14 @@ export class ExerciseService {
     }
 
     Object.assign(exercise,data);
+    
+    if(data.questionSet){
+      const questionSet = await this.questionSetRepository.findOne({
+        where: { questionID: In(data.questionSet) },
+      })
+
+      exercise.questionSet = questionSet;
+    } 
 
     await this.exerciseRepository.save(exercise);
 
