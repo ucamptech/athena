@@ -1,26 +1,12 @@
 import 'package:flutter/material.dart';
-import 'username.dart';
+import 'home.dart';
 
-void main() => runApp(const MyApp());
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class UsernameScreen extends StatelessWidget {
+  const UsernameScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      home: LoginScreen(),
-      debugShowCheckedModeBanner: false,
-    );
-  }
-}
-
-class LoginScreen extends StatelessWidget {
-  const LoginScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final emailController = TextEditingController();
+    final UsernameController = TextEditingController();
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -37,7 +23,9 @@ class LoginScreen extends StatelessWidget {
                 alignment: Alignment.centerLeft,
                 child: IconButton(
                   icon: const Icon(Icons.arrow_back, color: Colors.blue),
-                  onPressed: () {},
+                  onPressed: ()  {
+                    Navigator.pop(context);
+                  },
                 ),
               ),
 
@@ -45,7 +33,7 @@ class LoginScreen extends StatelessWidget {
 
               // Title
               const Text(
-                "Create an account using Email",
+                "Create your Username",
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
@@ -57,9 +45,9 @@ class LoginScreen extends StatelessWidget {
 
               // Email Input
               TextField(
-                controller: emailController,
+                controller: UsernameController,
                 decoration: InputDecoration(
-                  hintText: "Email address",
+                  hintText: "Username",
                   contentPadding: const EdgeInsets.symmetric(
                       vertical: 18, horizontal: 16),
                   border: OutlineInputBorder(
@@ -84,10 +72,10 @@ class LoginScreen extends StatelessWidget {
                     elevation: 2,
                   ),
                   onPressed: () {
-                      Navigator.push( context,
-                      MaterialPageRoute(builder: (context) => UsernameScreen()),
-                      );
-                    },
+                    Navigator.push( context,
+                      MaterialPageRoute(builder: (context) => HomeScreen( userID: UsernameController.text)),
+                    );
+                  },
                   child: const Text(
                     "CONTINUE",
                     style: TextStyle(fontWeight: FontWeight.bold),
@@ -96,19 +84,6 @@ class LoginScreen extends StatelessWidget {
               ),
 
               const SizedBox(height: 16),
-
-              // Skip for now
-              TextButton(
-                onPressed: () {
-                  Navigator.push( context,
-                    MaterialPageRoute(builder: (context) => UsernameScreen()),
-                  );
-                },
-                child: const Text(
-                  "SKIP FOR NOW",
-                  style: TextStyle(color: Colors.lightBlueAccent),
-                ),
-              ),
 
               const Spacer(),
 

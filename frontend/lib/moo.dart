@@ -1,6 +1,7 @@
 import 'package:duolingo/main.dart';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'home.dart';
 
 
 // Include QuestionScreen (Screen 1)
@@ -16,7 +17,7 @@ class _CowScreenState extends State<CowScreen> {
   int score = 0;
   bool isQuizFinished = false;
   final AudioPlayer _audioPlayer = AudioPlayer()..setReleaseMode(ReleaseMode.stop);
-
+  final UsernameController = TextEditingController();
 
   final List<Question> questions = [
     Question(
@@ -116,7 +117,7 @@ class _CowScreenState extends State<CowScreen> {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => HomeScreen()),
+                    MaterialPageRoute(builder: (context) => HomeScreen(userID: UsernameController.text)),
                   );
                 },
                 style: ElevatedButton.styleFrom(
