@@ -20,9 +20,6 @@ export class ExerciseService {
     }
     const exercise = this.exerciseRepository.create({
       exerciseID: data.exerciseID,
-      result: data.result,
-      timeActivityIsDisplayed: data.timeActivityIsDisplayed,
-      timeUserIsActive: data.timeUserIsActive,
   });
   
     if(data.questionSet){

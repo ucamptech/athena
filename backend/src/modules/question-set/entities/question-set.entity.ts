@@ -16,7 +16,7 @@ export class QuestionSet {
   @Column({ nullable: true })
   questionImage: string;
 
-  @Column({ nullable: false})
+  @Column({ nullable: true})
   questionAudio: string;
   
   @ManyToMany(() => Choices, (choices) => choices.questionSetOption, {

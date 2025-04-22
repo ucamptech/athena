@@ -18,10 +18,10 @@ export class Exercise {
   @Column({ nullable: true })
   result: 'correct' | 'incorrect';
 
-  @Column()
+  @Column({ nullable: true })
   timeActivityIsDisplayed: string;
 
-  @Column()
+  @Column({ nullable: true })
   timeUserIsActive: string;
 
   @ManyToOne(() => Session, (session) => session.exerciseList)
