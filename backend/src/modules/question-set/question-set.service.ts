@@ -25,7 +25,7 @@ export class QuestionSetService {
       questionAudio: data.questionAudio,
   });
 
-    if(data.options || data.options.length > 0){
+    if(data.options && data.options.length > 0){
 
       const options = await this.choicesRepository.find({
         where: { choiceID: In(data.options) },
@@ -36,7 +36,7 @@ export class QuestionSetService {
     }
 
 
-    if(data.correctAnswer || data.correctAnswer.length > 0){
+    if(data.correctAnswer && data.correctAnswer.length > 0){
 
       const correctAnswer = await this.choicesRepository.find({
         where: { choiceID: In(data.correctAnswer) },
