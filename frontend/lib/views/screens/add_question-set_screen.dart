@@ -1,12 +1,11 @@
-import 'dart:convert';
 import 'dart:io';
+import 'package:duolingo/services/question-set_services.dart';
 import 'package:flutter/material.dart';
-import '../../services/question-set_services.dart';
 import '../../services/choices_services.dart';
 import '../../services/upload_service.dart';
 import '../../utils/logger_utils.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:http/http.dart' as http;
+import 'package:file_picker/file_picker.dart';
 
 class CreateQuestionSetScreen extends StatefulWidget {
   const CreateQuestionSetScreen({super.key});
@@ -23,12 +22,19 @@ class _CreateQuestionSetScreenState extends State<CreateQuestionSetScreen> {
   final QuestionSetServices _questionSetServices = QuestionSetServices();
   final UploadService _uploadService = UploadService();
 
+  List<Map<String, dynamic>> choices = [];
+  List<Map<String, dynamic>> selectedOptions = [];
+  Map<String, dynamic>? selectedCorrectAnswer;
 
-  List<Map<String, dynamic>> questionSets = [];
-  Map<String, dynamic>? selectedQuestionSet;
+  bool isChoosingCorrectAnswer = false;
 
   File? questionImage;
   File? questionAudio;
+
+  void initState() {
+    super.initState();
+    fetchChoices();
+  }
 
   Future<void> _pickImage() async {
     final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
@@ -37,7 +43,27 @@ class _CreateQuestionSetScreenState extends State<CreateQuestionSetScreen> {
     });
   }
 
-   @override
+  Future<void> _pickAudio() async {
+    final pickedFile  = await FilePicker.platform.pickFiles(type: FileType.audio);
+    if (pickedFile != null) {
+      setState(() {
+        questionAudio = File(pickedFile.files.single.path!);
+      });
+    }
+  }
+
+  Future<void> fetchChoices() async {
+    try {
+      final response = await _choicesServices.getChoiceData();
+      setState(() {
+        choices = List<Map<String, dynamic>>.from(response);
+      });
+    } catch (e) {
+      LoggerUtils.errorLog('Error fetching question sets: $e');
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
@@ -52,13 +78,15 @@ class _CreateQuestionSetScreenState extends State<CreateQuestionSetScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Text(
-                    'Create New Exercise',
+                    'Create New Question Set',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
+
                   const SizedBox(height: 20),
+
                   TextField(
                     controller: idController,
                     decoration: InputDecoration(
@@ -66,7 +94,9 @@ class _CreateQuestionSetScreenState extends State<CreateQuestionSetScreen> {
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
+
                   const SizedBox(height: 20),
+
                   TextField(
                     controller: questionController,
                     decoration: InputDecoration(
@@ -74,38 +104,172 @@ class _CreateQuestionSetScreenState extends State<CreateQuestionSetScreen> {
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
+
                   const SizedBox(height: 20),
-                  Container(
-                    child: DropdownMenu<Map<String, dynamic>>(
-                      initialSelection: selectedQuestionSet,
-                      label: const Text("Select Question Set"),
-                      textStyle: const TextStyle(fontSize: 14),
-                      menuHeight: 250,
-                      dropdownMenuEntries: questionSets.map((qSet) {
-                        return DropdownMenuEntry<Map<String, dynamic>>(
-                          value: qSet,
-                          label: qSet['question'] ?? 'No Title',
-                        );
-                      }).toList(),
-                      onSelected: (value) {
+                 
+                  Center(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 15),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      onPressed: () {
                         setState(() {
-                          selectedQuestionSet = value;
+                          isChoosingCorrectAnswer = !isChoosingCorrectAnswer;
                         });
                       },
+                      child: Text(isChoosingCorrectAnswer
+                          ? 'Toggle to Choose Options'
+                          : 'Toggle to Choose Correct Answer'),
                     ),
                   ),
+
                   const SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: _pickImage,
-                    child: Text(questionImage == null ? 'Pick Image' : 'Image Selected'),
+
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                     Text(
+                        'Select Choices (double-tap to add/remove): ' +
+                            (isChoosingCorrectAnswer
+                                ? 'Currently Choosing Correct Answer'
+                                : 'Currently Choosing Options'),
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        height: 100,
+                        child: SingleChildScrollView(
+                          child: Wrap(
+                            spacing: 10,
+                            runSpacing: 10,
+                            children: choices.map((choice) {
+                              final isSelected = selectedOptions.contains(choice);
+                              final isCorrectAnswer = selectedCorrectAnswer == choice;
+                              
+                              return GestureDetector(
+                                onDoubleTap: () {
+                                  setState(() {
+                                    if (isCorrectAnswer) {
+                                      selectedCorrectAnswer = null;
+                                    } else if (isSelected) {
+                                      selectedOptions.remove(choice);
+                                    } else {
+                                      if (isChoosingCorrectAnswer) {
+                                        if (selectedCorrectAnswer != null) {
+                                          selectedCorrectAnswer = null;
+                                        }
+                                        selectedCorrectAnswer = choice;
+                                      } else {
+                                        if (selectedOptions.length < 3) {
+                                          selectedOptions.add(choice); 
+                                        } else {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(
+                                              content: Text('You can only select up to 3 options.'),
+                                            ),
+                                          );
+                                        }
+                                      }
+                                    }
+                                  });
+                                },
+                                child: Chip(
+                                  backgroundColor: isCorrectAnswer
+                                      ? Colors.green
+                                      : (isSelected ? Colors.blue : Colors.grey.shade300),
+                                  label: Text(choice['name'] ?? 'N/A'),
+                                  labelStyle: TextStyle(
+                                    color: isCorrectAnswer
+                                        ? Colors.white
+                                        : (isSelected ? Colors.white : Colors.black),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('Selected Options:', style: TextStyle(fontWeight: FontWeight.bold)),
+                                Wrap(
+                                  spacing: 8,
+                                  children: selectedOptions.map((c) {
+                                    return Chip(label: Text(c['name'] ?? 'N/A'));
+                                  }).toList(),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 20),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('Selected Correct Answer:', style: TextStyle(fontWeight: FontWeight.bold)),
+                                Wrap(
+                                  spacing: 8,
+                                  children: [
+                                    if (selectedCorrectAnswer != null)
+                                      Chip(label: Text(selectedCorrectAnswer!['name'] ?? 'N/A')),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      )
+                    ],
                   ),
-                  const SizedBox(height: 30),
-                  Divider(),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+
+                  const SizedBox(height: 20),
+
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 15),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                        onPressed: _pickImage,
+                        child: Text(
+                          questionImage == null
+                              ? 'Pick Image'
+                              : questionImage!.path.split('/').last,
+                        ),
+                      ),
+
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 15),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                        onPressed: _pickAudio,
+                        child: Text(
+                            questionAudio == null 
+                                ? 'Pick Audio' 
+                                : questionAudio!.path.split('/').last,
+                        ),
+                      ),
+
+                    ],
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  ElevatedButton.icon(
+                     style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 15),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
                       icon: const Icon(Icons.check),
@@ -113,53 +277,66 @@ class _CreateQuestionSetScreenState extends State<CreateQuestionSetScreen> {
                         'Submit',
                         style: TextStyle(fontSize: 16),
                       ),
-                      onPressed: () async {
-                        if (questionImage == null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Please select both image and audio!')),
-                          );
-                          return;
+                    onPressed: () async {
+                      if (selectedCorrectAnswer == null || selectedOptions.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Please select choices')),
+                        );
+                        return;
+                      }
+
+                      final data = {
+                        "questionID": idController.text,
+                        "question": questionController.text,
+                        "questionImage": null,
+                        "questionAudio": null,
+                        "options": selectedOptions.map((c) => c['choiceID']).toList(),
+                        "correctAnswer": [int.parse(selectedCorrectAnswer?['choiceID'])],
+                      };
+
+                      bool isQuestionSetCreated =
+                          await _questionSetServices.createQuestionSetData(data: data);
+                      if (isQuestionSetCreated) {
+
+                        final Map<String, dynamic> updateData = {};
+
+                        if (questionImage != null) {
+                          final imagePath = await _uploadService.uploadImage(questionImage!);
+                          if (imagePath != null) {
+                            updateData['questionImage'] = imagePath;
+                          }
                         }
 
-                          final data = {
-                            "questionID": idController.text,
-                            "question": questionController.text,
-                            "questionImage": null,
-                            "questionAudio": null,
-                            "options": null,
-                            "correctAnswer": null,
-                          };
+                        if (questionAudio != null) {
+                          final audioPath = await _uploadService.uploadAudio(questionAudio!);
+                          if (audioPath != null) {
+                            updateData['questionAudio'] = audioPath;
+                          }
+                        }
 
-                          bool isQuestionSetCreated = await _questionSetServices.createQuestionSetData(data: data);
-                            if (isQuestionSetCreated) {
-                              if (questionImage != null) {
-                                final imagePath = await _uploadService.uploadImage(questionImage!);
-
-                                if (imagePath != null) {
-                                  final updateData = {
-                                    "questionImage": imagePath,
-                                  };
-
-                                  await _questionSetServices.updateQuestionSetData(
-                                    updateData,
-                                    int.parse(idController.text),
-                                  );
-                                }
-                              }
-                            } else {
-                              LoggerUtils.log("Question set creation failed. Skipping image upload.");
-                            }
-                          LoggerUtils.log(data.toString());
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                isQuestionSetCreated ? 'Exercise created Successfully' : 'Exercise creation failed',
-                              ),
-                              backgroundColor: isQuestionSetCreated ? Colors.green : Colors.red,
-                            ),
+                        if (updateData.isNotEmpty) {
+                          await _questionSetServices.updateQuestionSetData(
+                            updateData,
+                            int.parse(idController.text),
                           );
-                      },
-                    ),
+                        }
+                      } 
+                      else {
+                        LoggerUtils.log(" Skipping file upload.");
+                      }
+
+                      LoggerUtils.log(data.toString());
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            isQuestionSetCreated
+                                ? 'Exercise created Successfully'
+                                : 'Exercise creation failed',
+                          ),
+                          backgroundColor: isQuestionSetCreated ? Colors.green : Colors.red,
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),

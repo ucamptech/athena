@@ -15,7 +15,7 @@ image: string;
 @Column()
 name: string;
 
-@Column()
+@Column({ nullable: true})
 audio: string;
 
 @ManyToMany(() => QuestionSet, (questionSet) => questionSet.options)

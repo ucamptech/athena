@@ -3,12 +3,12 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname, join} from 'path';
 
-@Controller('upload')
-export class UploadController {
+@Controller('upload/audio')
+export class UploadAudioController {
   @Post()
   @UseInterceptors(FileInterceptor('file', {
     storage: diskStorage({
-        destination: join(__dirname, '..', '..', '..', 'static', 'images'),
+        destination: join(__dirname, '..', '..', '..', 'static', 'audio'),
       filename: (req, file, callback) => {
         const uniqueSuffix = Date.now();
         const ext = extname(file.originalname);
@@ -20,7 +20,7 @@ export class UploadController {
     console.log('Received file:', file);
     return {
       message: 'File uploaded successfully!',
-      path: `/images/${file.filename}`,
+      path: `/audio/${file.filename}`,
     };
   }
 }

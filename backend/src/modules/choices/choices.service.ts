@@ -53,7 +53,6 @@ export class ChoicesService {
 
     const choice = await this.choicesRepository.findOne({
       where: {choiceID},
-      relations: ['exerciseSession', 'questionSet'],
     });
 
     if(!choice){
@@ -70,7 +69,6 @@ export class ChoicesService {
   async deleteChoice(choiceID: string) {
     const choice = await this.choicesRepository.findOne({
       where: { choiceID },
-      relations: ['exerciseSession', 'questionSet'],
     });
   
     if (!choice) {

@@ -36,23 +36,21 @@ Future <List<Map<String, dynamic>>> getChoiceData() async {
 
   try {
     final response = await http.get(Uri.parse(_baseUrl), headers: _headers);
-    final Map<String, dynamic> json = jsonDecode(response.body);
+    final List<dynamic> jsonList = jsonDecode(response.body);
 
-    if (response.statusCode == 200 ||response.statusCode == 201) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      LoggerUtils.log('data: ${const JsonEncoder.withIndent('  ').convert(jsonList)}');
       
-      LoggerUtils.log('Message: ${json['message']}');
-      LoggerUtils.log('Message: ${json['data']}');
-
-      return List<Map<String, dynamic>>.from(json['data']);
+      return List<Map<String, dynamic>>.from(jsonList);
     } 
     else {
-      LoggerUtils.errorLog('Server error: ${json['message']}');
-      throw Exception("Failed to load exercises");
+      LoggerUtils.errorLog('Server error: ${response.statusCode}');;
+      throw Exception("Failed to load choices");
     }
   } 
   catch (error) {
     LoggerUtils.errorLog('Error: $error');
-    throw Exception("Error loading exercises");
+    throw Exception("Error loading choices");
   }
 }
 
@@ -61,20 +59,18 @@ Future <void> updateChoiceData(Map<String, dynamic> data, int id) async {
 
   try {
     final response = await http.patch(Uri.parse('${_baseUrl}/${id}'), headers: _headers, body: body);
-    var json = jsonDecode(response.body);
+    var jsonResponse = jsonDecode(response.body);
 
     if (response.statusCode == 200 || response.statusCode == 201) {
-      LoggerUtils.log('Message: ${json['message']}');
-      LoggerUtils.log('Data: ${json['data']}');
-
+      LoggerUtils.log('Message: ${jsonResponse['message']}');
+      LoggerUtils.log('Data: ${jsonResponse['data']}');
     } 
     else {
-      LoggerUtils.errorLog('Server error: ${json['message']}');
+      LoggerUtils.errorLog('Server error: ${jsonResponse['message']}');
     }
   } 
   catch (error) {
     LoggerUtils.errorLog('Error: $error');
   }
 }
-
 }
