@@ -1,300 +1,244 @@
-import 'package:duolingo/question.dart';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:http/http.dart' as http;
 import 'dart:math';
-import 'dart:ui';
-import 'monk.dart';
+
+const String baseUrl = 'http://10.0.2.2:3000'; // Adjust as needed
 
 class LetterGameScreen extends StatefulWidget {
+  final String userID;
+
+  const LetterGameScreen({Key? key, required this.userID}) : super(key: key);
+
   @override
-  _LetterGameScreenState createState() => _LetterGameScreenState();
+  State<LetterGameScreen> createState() => _LetterGameScreenState();
 }
 
 class _LetterGameScreenState extends State<LetterGameScreen> {
-  final String word = "fox";
-  List<String?> placedLetters = [null, null, null];
-  List<String> availableLetters = ['f', 'o', 'x'];
   final AudioPlayer _audioPlayer = AudioPlayer();
-  bool showContinueButton = false;
+  bool isLoading = true;
+  bool showMessage = false;
+  bool isCompleted = false;
 
-  final GameSession gameSession = GameSession(
-    userID: 'user_123',
-    loginDate: DateTime.now(),
-  );
+  List<String> availableLetters = [];
+  List<String?> placedLetters = [];
+  Map<String, Color> letterColors = {};
 
-  late DateTime questionShownTime;
-  late DateTime userActiveStartTime;
+
+  DateTime questionShownTime = DateTime.now();
+  DateTime userActiveStartTime = DateTime.now();
+
+  LetterGameData? letterGameData;
 
   @override
   void initState() {
     super.initState();
-    _playSound();
+    fetchLetterGameData();
     questionShownTime = DateTime.now();
     userActiveStartTime = DateTime.now();
   }
 
+  Future<void> fetchLetterGameData() async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/api/question-set'));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+
+        // If the API returns a list of questions, filter for 'letter' type
+        final List<dynamic> questions = data is List ? data : [data];
+        final letterQuestions = questions.where((q) => q['questionType'] == 'letter').toList();
+
+        if (letterQuestions.isEmpty) {
+          throw Exception('No letter-type questions found.');
+        }
+
+        // Pick the first one (or modify logic as needed)
+        final loadedData = LetterGameData.fromJson(letterQuestions.first);
+
+        setState(() {
+          letterGameData = loadedData;
+          placedLetters = List.filled(loadedData.letters.length, null);
+          availableLetters = [...loadedData.letters]..shuffle();
+
+          // Assign random color for each letter
+          letterColors = {
+            for (var letter in availableLetters) letter: _getRandomColor()
+          };
+
+          isLoading = false;
+        });
+
+        _playSound(loadedData.audioUrl);
+      } else {
+        print('Server responded with ${response.statusCode}: ${response.body}');
+        throw Exception('Failed to load letter game data');
+      }
+    } catch (e) {
+      print('Error loading letter game data: $e');
+    }
+  }
+
+
+  void _playSound(String url) async {
+    try {
+      await _audioPlayer.play(UrlSource(url));
+    } catch (e) {
+      print('Audio error: $e');
+    }
+  }
+
+  void _checkCompletion() async {
+    if (placedLetters.contains(null)) return; // Don't check if not complete
+
+    final correctWord = letterGameData!.letters.join();
+    final userWord = placedLetters.map((e) => e ?? '').join();
+
+    final timeTaken = DateTime.now().difference(questionShownTime);
+    final activeDuration = DateTime.now().difference(userActiveStartTime);
+
+    if (userWord == correctWord) {
+      setState(() {
+        isCompleted = true;
+        showMessage = true;
+      });
+
+      print("Correct! Time: ${timeTaken.inSeconds}s, Active time: ${activeDuration.inSeconds}s");
+
+      await Future.delayed(Duration(seconds: 2));
+      if (mounted) Navigator.pop(context, true);
+    } else {
+      setState(() {
+        showMessage = true;
+      });
+    }
+  }
+
+
   @override
   Widget build(BuildContext context) {
+    if (isLoading || letterGameData == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    final wordLength = letterGameData!.letters.length;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      appBar: AppBar(title: Text("Build the Word")),
       body: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Expanded(
-            child: Stack(
-              children: [
-                Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Image.asset('assets/images/fox.png', height: 150),
-                      SizedBox(height: 20),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(
-                          word.length,
-                              (index) => DragTarget<String>(
-                            onAccept: (receivedLetter) {
-                              setState(() {
-                                placedLetters[index] = receivedLetter;
-                                availableLetters.remove(receivedLetter);
-                              });
-
-                              Future.delayed(Duration(milliseconds: 300), () {
-                                if (_isWordCorrect()) {
-                                  _showCorrectBanner();
-                                  setState(() {
-                                    showContinueButton = true;
-                                  });
-                                }
-                              });
-                            },
-                            builder: (context, candidateData, rejectedData) {
-                              return Container(
-                                width: 40,
-                                height: 50,
-                                margin: EdgeInsets.symmetric(horizontal: 5),
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.black),
-                                  borderRadius: BorderRadius.circular(5),
-                                  color: placedLetters[index] != null
-                                      ? Colors.green.withOpacity(0.3)
-                                      : Colors.transparent,
-                                ),
-                                child: Text(
-                                  placedLetters[index] ?? '',
-                                  style: TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                ...availableLetters.map((letter) {
-                  return DraggableLetter(
-                    letter: letter,
-                    onDragCompleted: () {
-                      setState(() {
-                        availableLetters.remove(letter);
-                      });
-                    },
-                    color: _getRandomColor(),
-                  );
-                }).toList(),
-              ],
-            ),
+          Image.network(
+            letterGameData!.imageUrl,
+            height: 150,
           ),
-          if (showContinueButton)
-            Padding(
-              padding: EdgeInsets.only(bottom: 20),
-              child: SizedBox(
-                width: double.infinity,
-                height: 60,
-                child: ElevatedButton(
-                  onPressed: () {
-                    // Create an ExerciseResult and add to session
-                    final result = ExerciseResult(
-                      exerciseID: 'fox_image',
-                      assets: 'fox.png',
-                      result: word,
-                      timeActivityIsDisplayed: questionShownTime,
-                      timeUserIsActive: DateTime.now(),
-                    );
+          SizedBox(height: 40),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(wordLength, (index) {
+              final placedLetter = placedLetters[index];
+              final color = placedLetter != null ? letterColors[placedLetter] ?? Colors.black : Colors.black;
 
-                    gameSession.exerciseList.add(result);
-
-                    // ✅ Print the whole session as JSON in terminal
-                    print(gameSession.toJson());
-                    Navigator.pop(context, true);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => Monk()),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(25),
-                    ),
-                  ),
-                  child: Text(
-                    "CONTINUE",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+              return DragTarget<String>(
+                builder: (context, candidateData, rejectedData) {
+                  return Container(
+                    width: 60,
+                    height: 60,
+                    margin: const EdgeInsets.all(8),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey),
                       color: Colors.white,
                     ),
+                    child: Text(
+                      placedLetter ?? '',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: color,
+                      ),
+                    ),
+                  );
+                },
+                onAccept: (letter) {
+                  setState(() {
+                    placedLetters[index] = letter;
+                    availableLetters.remove(letter);
+                  });
+                  _checkCompletion();
+                },
+              );
+            }),
+          ),
+
+          SizedBox(height: 30),
+          Wrap(
+            spacing: 12,
+            children: availableLetters.map((letter) {
+              final color = letterColors[letter] ?? Colors.black;
+
+              return Draggable<String>(
+                data: letter,
+                feedback: Material(
+                  color: Colors.transparent,
+                  child: Text(
+                    letter,
+                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: color),
                   ),
                 ),
-              ),
+                childWhenDragging: Opacity(
+                  opacity: 0.5,
+                  child: Text(
+                    letter,
+                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: color),
+                  ),
+                ),
+                child: Text(
+                  letter,
+                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: color),
+                ),
+              );
+            }).toList(),
+          ),
+          SizedBox(height: 30),
+          if (showMessage)
+            Text(
+              isCompleted ? '🎉 Correct!' : '❌ Try Again',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: isCompleted ? Colors.green : Colors.red),
             ),
         ],
       ),
     );
   }
-
-  void _playSound() async {
-    await _audioPlayer.play(AssetSource('sounds/drag.mp3'));
-  }
-
-  Color _getRandomColor() {
-    final random = Random();
-    return Colors.primaries[random.nextInt(Colors.primaries.length)];
-  }
-
-  bool _isWordCorrect() {
-    for (int i = 0; i < word.length; i++) {
-      if (placedLetters[i] != word[i]) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  void _showCorrectBanner() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('🎉 Correct!'),
-        backgroundColor: Colors.green,
-        duration: Duration(seconds: 2),
-      ),
-    );
-  }
-
-  void _saveExerciseResult() {
-    final timeUserIsActive = DateTime.now();
-    final exerciseResult = ExerciseResult(
-      exerciseID: 'exercise_01',
-      assets: {'image': 'fox.png'},
-      result: _isWordCorrect() ? 'correct' : 'incorrect',
-      timeActivityIsDisplayed: questionShownTime,
-      timeUserIsActive: timeUserIsActive,
-    );
-    gameSession.exerciseList.add(exerciseResult);
-    gameSession.accumulatedSessionScore += _isWordCorrect() ? 10 : 0;
-
-    print(gameSession.toJson()); // Print out the GameSession as JSON
-  }
 }
 
-class DraggableLetter extends StatelessWidget {
-  final String letter;
-  final VoidCallback onDragCompleted;
-  final Color color;
+Color _getRandomColor() {
+  final random = Random();
+  return Colors.primaries[random.nextInt(Colors.primaries.length)];
+}
 
-  DraggableLetter({
-    required this.letter,
-    required this.onDragCompleted,
-    required this.color,
+
+class LetterGameData {
+  final List<String> letters;
+  final String imageUrl;
+  final String audioUrl;
+
+  LetterGameData({
+    required this.letters,
+    required this.imageUrl,
+    required this.audioUrl,
   });
 
-  @override
-  Widget build(BuildContext context) {
-    return Positioned(
-      left: (100 + (letter.hashCode % 200)).toDouble(),
-      top: (300 + (letter.hashCode % 150)).toDouble(),
-      child: Draggable<String>(
-        data: letter,
-        feedback: Material(
-          color: Colors.transparent,
-          child: Text(
-            letter,
-            style: TextStyle(
-              fontSize: 30,
-              color: color,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-        childWhenDragging: SizedBox.shrink(),
-        onDragCompleted: onDragCompleted,
-        child: Text(
-          letter,
-          style: TextStyle(
-            fontSize: 30,
-            color: color,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
+  factory LetterGameData.fromJson(Map<String, dynamic> json) {
+    return LetterGameData(
+      letters: List<String>.from(json['letters']),
+      imageUrl: json['questionImage'].startsWith('http')
+          ? json['questionImage']
+          : '$baseUrl${json['questionImage']}',
+      audioUrl: json['questionAudio'].startsWith('http')
+          ? json['questionAudio']
+          : '$baseUrl${json['questionAudio']}',
     );
-  }
-}
-
-// ==== Model Classes ====
-// ExerciseResult class
-class ExerciseResult {
-  final String exerciseID;
-  final dynamic assets;
-  final String result;
-  final DateTime timeActivityIsDisplayed;
-  final DateTime timeUserIsActive;
-
-  ExerciseResult({
-    required this.exerciseID,
-    required this.assets,
-    required this.result,
-    required this.timeActivityIsDisplayed,
-    required this.timeUserIsActive,
-  });
-
-  Map<String, dynamic> toJson() {
-    return {
-      'exerciseID': exerciseID,
-      'assets': assets,
-      'result': result,
-      'timeActivityIsDisplayed': timeActivityIsDisplayed.toIso8601String(),
-      'timeUserIsActive': timeUserIsActive.toIso8601String(),
-    };
-  }
-}
-
-// GameSession class
-class GameSession {
-  final String userID;
-  final DateTime loginDate;
-  int accumulatedSessionScore;
-  final List<ExerciseResult> exerciseList;
-
-  GameSession({
-    required this.userID,
-    required this.loginDate,
-    this.accumulatedSessionScore = 0,
-    List<ExerciseResult>? exerciseList,
-  }) : exerciseList = exerciseList ?? [];
-
-  Map<String, dynamic> toJson() {
-    return {
-      'userID': userID,
-      'loginDate': loginDate.toIso8601String(),
-      'accumulatedSessionScore': accumulatedSessionScore,
-      'exerciseList': exerciseList.map((e) => e.toJson()).toList(),
-    };
   }
 }

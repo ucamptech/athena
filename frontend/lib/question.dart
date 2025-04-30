@@ -38,11 +38,16 @@ class _QuestionScreenState extends State<QuestionScreen> {
       final response = await http.get(Uri.parse('$baseUrl/api/question-set'));
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
+
+        // Filter only multipleChoice questions
+        final filteredData = data.where((item) => item['questionType'] == 'multipleChoice').toList();
+
         setState(() {
-          questions = data.map((json) => Question.fromJson(json)).toList();
+          questions = filteredData.map((json) => Question.fromJson(json)).toList();
           questionShownTime = DateTime.now();
           isLoading = false;
         });
+
         playSound();
       } else {
         throw Exception('Failed to fetch questions');
@@ -51,6 +56,7 @@ class _QuestionScreenState extends State<QuestionScreen> {
       print('Error fetching questions: $e');
     }
   }
+
 
   void playSound() async {
     final question = questions[currentQuestionIndex];
