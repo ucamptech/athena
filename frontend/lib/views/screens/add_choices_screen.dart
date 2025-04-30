@@ -78,7 +78,7 @@ class _CreateChoicesScreenState extends State<CreateChoicesScreen> {
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 60),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
@@ -108,64 +108,67 @@ class _CreateChoicesScreenState extends State<CreateChoicesScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 20),
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 15),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                    icon: const Icon(Icons.check),
-                    label: const Text(
-                      'Submit',
-                      style: TextStyle(fontSize: 16),
-                    ),
-                    onPressed: () async {
-                      final data = {
-                        "choiceID": idController.text,
-                        "image": null,
-                        "name": nameController.text,
-                        "audio": null,
-                      };
-
-                      bool isChoiceCreated = await _choicesServices.createChoiceData(data: data);
-                      if (isChoiceCreated) {
-                        final Map<String, dynamic> updateData = {};
-
-                        if (questionImage != null) {
-                          final imagePath = await _uploadService.uploadImage(questionImage!);
-                          if (imagePath != null) {
-                            updateData['image'] = imagePath;
+                  const SizedBox(height: 60),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 15),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      icon: const Icon(Icons.check),
+                      label: const Text(
+                        'Submit',
+                        style: TextStyle(fontSize: 16),
+                      ),
+                      onPressed: () async {
+                        final data = {
+                          "choiceID": idController.text,
+                          "image": null,
+                          "name": nameController.text,
+                          "audio": null,
+                        };
+                    
+                        bool isChoiceCreated = await _choicesServices.createChoiceData(data: data);
+                        if (isChoiceCreated) {
+                          final Map<String, dynamic> updateData = {};
+                    
+                          if (questionImage != null) {
+                            final imagePath = await _uploadService.uploadImage(questionImage!);
+                            if (imagePath != null) {
+                              updateData['image'] = imagePath;
+                            }
                           }
-                        }
-
-                        if (questionAudio != null) {
-                          final audioPath = await _uploadService.uploadAudio(questionAudio!);
-                          if (audioPath != null) {
-                            updateData['audio'] = audioPath;
+                    
+                          if (questionAudio != null) {
+                            final audioPath = await _uploadService.uploadAudio(questionAudio!);
+                            if (audioPath != null) {
+                              updateData['audio'] = audioPath;
+                            }
                           }
+                    
+                          if (updateData.isNotEmpty) {
+                            await _choicesServices.updateChoiceData(
+                              updateData,
+                              int.parse(idController.text),
+                            );
+                          }
+                        } else {
+                          LoggerUtils.log("Skipping file upload.");
                         }
-
-                        if (updateData.isNotEmpty) {
-                          await _choicesServices.updateChoiceData(
-                            updateData,
-                            int.parse(idController.text),
-                          );
-                        }
-                      } else {
-                        LoggerUtils.log("Skipping file upload.");
-                      }
-
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            isChoiceCreated
-                                ? 'Exercise created successfully'
-                                : 'Exercise creation failed',
+                    
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              isChoiceCreated
+                                  ? 'Exercise created successfully'
+                                  : 'Exercise creation failed',
+                            ),
+                            backgroundColor: isChoiceCreated ? Colors.green : Colors.red,
                           ),
-                          backgroundColor: isChoiceCreated ? Colors.green : Colors.red,
-                        ),
-                      );
-                    },
+                        );
+                      },
+                    ),
                   ),
                 ],
               ),

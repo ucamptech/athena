@@ -144,7 +144,7 @@ class _CreateQuestionSetScreenState extends State<CreateQuestionSetScreen> {
                             spacing: 10,
                             runSpacing: 10,
                             children: choices.map((choice) {
-                              final isSelected = selectedOptions.contains(choice);
+                              final isOption = selectedOptions.contains(choice);
                               final isCorrectAnswer = selectedCorrectAnswer == choice;
                               
                               return GestureDetector(
@@ -152,18 +152,23 @@ class _CreateQuestionSetScreenState extends State<CreateQuestionSetScreen> {
                                   setState(() {
                                     if (isCorrectAnswer) {
                                       selectedCorrectAnswer = null;
-                                    } else if (isSelected) {
+                                    } 
+                                    else if (isOption) {
                                       selectedOptions.remove(choice);
-                                    } else {
-                                      if (isChoosingCorrectAnswer) {
+                                    } 
+                                    else {
+                                      if (isChoosingCorrectAnswer) 
+                                      {
                                         if (selectedCorrectAnswer != null) {
                                           selectedCorrectAnswer = null;
                                         }
                                         selectedCorrectAnswer = choice;
-                                      } else {
+                                      } 
+                                      else {
                                         if (selectedOptions.length < 3) {
                                           selectedOptions.add(choice); 
-                                        } else {
+                                        } 
+                                        else {
                                           ScaffoldMessenger.of(context).showSnackBar(
                                             const SnackBar(
                                               content: Text('You can only select up to 3 options.'),
@@ -177,12 +182,12 @@ class _CreateQuestionSetScreenState extends State<CreateQuestionSetScreen> {
                                 child: Chip(
                                   backgroundColor: isCorrectAnswer
                                       ? Colors.green
-                                      : (isSelected ? Colors.blue : Colors.grey.shade300),
+                                      : (isOption ? Colors.blue : Colors.grey.shade300),
                                   label: Text(choice['name'] ?? 'N/A'),
                                   labelStyle: TextStyle(
                                     color: isCorrectAnswer
                                         ? Colors.white
-                                        : (isSelected ? Colors.white : Colors.black),
+                                        : (isOption ? Colors.white : Colors.black),
                                   ),
                                 ),
                               );
@@ -194,13 +199,13 @@ class _CreateQuestionSetScreenState extends State<CreateQuestionSetScreen> {
                       const SizedBox(height: 20),
 
                       Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
                           Expanded(
                             child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.start,
                               children: [
-                                const Text('Selected Options:', style: TextStyle(fontWeight: FontWeight.bold)),
+                                Center(child: const Text('Selected Options:', style: TextStyle(fontWeight: FontWeight.bold))),
                                 Wrap(
                                   spacing: 8,
                                   children: selectedOptions.map((c) {
@@ -213,9 +218,9 @@ class _CreateQuestionSetScreenState extends State<CreateQuestionSetScreen> {
                           const SizedBox(width: 20),
                           Expanded(
                             child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.start,
                               children: [
-                                const Text('Selected Correct Answer:', style: TextStyle(fontWeight: FontWeight.bold)),
+                                Center(child: const Text('Selected Correct Answer:', style: TextStyle(fontWeight: FontWeight.bold))),
                                 Wrap(
                                   spacing: 8,
                                   children: [
@@ -231,7 +236,7 @@ class _CreateQuestionSetScreenState extends State<CreateQuestionSetScreen> {
                     ],
                   ),
 
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 60),
 
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -265,78 +270,81 @@ class _CreateQuestionSetScreenState extends State<CreateQuestionSetScreen> {
                     ],
                   ),
 
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 60),
 
-                  ElevatedButton.icon(
-                     style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 15),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                      icon: const Icon(Icons.check),
-                      label: const Text(
-                        'Submit',
-                        style: TextStyle(fontSize: 16),
-                      ),
-                    onPressed: () async {
-                      if (selectedCorrectAnswer == null || selectedOptions.isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Please select choices')),
-                        );
-                        return;
-                      }
-
-                      final data = {
-                        "questionID": idController.text,
-                        "question": questionController.text,
-                        "questionImage": null,
-                        "questionAudio": null,
-                        "options": selectedOptions.map((c) => c['choiceID']).toList(),
-                        "correctAnswer": [int.parse(selectedCorrectAnswer?['choiceID'])],
-                      };
-
-                      bool isQuestionSetCreated =
-                          await _questionSetServices.createQuestionSetData(data: data);
-                      if (isQuestionSetCreated) {
-
-                        final Map<String, dynamic> updateData = {};
-
-                        if (questionImage != null) {
-                          final imagePath = await _uploadService.uploadImage(questionImage!);
-                          if (imagePath != null) {
-                            updateData['questionImage'] = imagePath;
-                          }
-                        }
-
-                        if (questionAudio != null) {
-                          final audioPath = await _uploadService.uploadAudio(questionAudio!);
-                          if (audioPath != null) {
-                            updateData['questionAudio'] = audioPath;
-                          }
-                        }
-
-                        if (updateData.isNotEmpty) {
-                          await _questionSetServices.updateQuestionSetData(
-                            updateData,
-                            int.parse(idController.text),
-                          );
-                        }
-                      } 
-                      else {
-                        LoggerUtils.log(" Skipping file upload.");
-                      }
-
-                      LoggerUtils.log(data.toString());
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            isQuestionSetCreated
-                                ? 'Exercise created Successfully'
-                                : 'Exercise creation failed',
-                          ),
-                          backgroundColor: isQuestionSetCreated ? Colors.green : Colors.red,
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                       style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 15),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
-                      );
-                    },
+                        icon: const Icon(Icons.check),
+                        label: const Text(
+                          'Submit',
+                          style: TextStyle(fontSize: 16),
+                        ),
+                      onPressed: () async {
+                        if (selectedCorrectAnswer == null || selectedOptions.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Please select choices')),
+                          );
+                          return;
+                        }
+                    
+                        final data = {
+                          "questionID": idController.text,
+                          "question": questionController.text,
+                          "questionImage": null,
+                          "questionAudio": null,
+                          "options": selectedOptions.map((c) => c['choiceID']).toList(),
+                          "correctAnswer": [int.parse(selectedCorrectAnswer?['choiceID'])],
+                        };
+                    
+                        bool isQuestionSetCreated =
+                            await _questionSetServices.createQuestionSetData(data: data);
+                        if (isQuestionSetCreated) {
+                    
+                          final Map<String, dynamic> updateData = {};
+                    
+                          if (questionImage != null) {
+                            final imagePath = await _uploadService.uploadImage(questionImage!);
+                            if (imagePath != null) {
+                              updateData['questionImage'] = imagePath;
+                            }
+                          }
+                    
+                          if (questionAudio != null) {
+                            final audioPath = await _uploadService.uploadAudio(questionAudio!);
+                            if (audioPath != null) {
+                              updateData['questionAudio'] = audioPath;
+                            }
+                          }
+                    
+                          if (updateData.isNotEmpty) {
+                            await _questionSetServices.updateQuestionSetData(
+                              updateData,
+                              int.parse(idController.text),
+                            );
+                          }
+                        } 
+                        else {
+                          LoggerUtils.log(" Skipping file upload.");
+                        }
+                    
+                        LoggerUtils.log(data.toString());
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              isQuestionSetCreated
+                                  ? 'Exercise created Successfully'
+                                  : 'Exercise creation failed',
+                            ),
+                            backgroundColor: isQuestionSetCreated ? Colors.green : Colors.red,
+                          ),
+                        );
+                      },
+                    ),
                   ),
                 ],
               ),

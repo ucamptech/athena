@@ -71,6 +71,7 @@ class _CreateExerciseScreenState extends State<CreateExerciseScreen> {
                   const SizedBox(height: 20),
 
                   Container(
+                    width: double.infinity,
                     child: DropdownMenu<Map<String, dynamic>>(
                       initialSelection: selectedQuestionSet,
                       label: const Text("Select Question Set"),
@@ -94,7 +95,6 @@ class _CreateExerciseScreenState extends State<CreateExerciseScreen> {
                   Divider(),
 
                   SizedBox(
-                    width: double.infinity,
                     child: ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 15),
